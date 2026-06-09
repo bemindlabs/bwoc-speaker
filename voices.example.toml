@@ -1,0 +1,69 @@
+# bwoc-speaker — per-agent voice config.
+# Copy to ~/.bwoc/speaker/voices.toml (or ./voices.toml) and edit.
+#
+# Resolution: an agent id is looked up in [agents]; that names a voice in
+# [voices]; the voice names a backend + its params. Missing → `default` voice.
+
+default = "kanya"
+
+# ── Agent → voice mapping ───────────────────────────────────────────────
+[agents]
+agent-home   = "bussaba"   # บุษบา — soft female
+agent-yudi   = "yudi"      # team lead — deep/authoritative (same clone, pitched down)
+agent-nezha  = "nezha"     # young/energetic (pitched up)
+# any agent not listed falls back to `default` (kanya)
+
+# Distinct voice per agent: with one on-device Thai timbre, set a different
+# `pitch` (+`speed`) per voice so each agent sounds distinct. Swap in a real
+# per-agent `ref_audio` for a truly different clone.
+[voices.yudi]
+backend = "f5_mlx"
+model = "~/.bwoc/speaker/models/f5-thai"
+ref_audio = "~/.bwoc/speaker/refs/bussaba.wav"
+ref_text = "…transcript of the ref…"
+speed = 0.92
+pitch = 0.80          # <1 = deeper
+
+[voices.nezha]
+backend = "f5_mlx"
+model = "~/.bwoc/speaker/models/f5-thai"
+ref_audio = "~/.bwoc/speaker/refs/bussaba.wav"
+ref_text = "…transcript of the ref…"
+speed = 1.08
+pitch = 1.15          # >1 = younger/higher
+
+# ── Voices ──────────────────────────────────────────────────────────────
+
+# Always-available fallback: macOS `say`, Thai (th_TH). Needs nothing installed.
+[voices.kanya]
+backend   = "mac_say"
+say_voice = "Kanya"
+
+# On-device Thai clone on Apple Silicon. Requires:
+#   pip install f5-tts-mlx        (in a venv; point BWOC_SPEAKER_PYTHON at it)
+#   python pysrc/convert_thai.py  (one-time: .pt → MLX safetensors local dir)
+#   export BWOC_SPEAKER_F5_SCRIPT=…/pysrc/f5_generate.py   (local-dir loader)
+# `model` is a LOCAL dir (a converted fine-tune) or an HF repo id of a
+# pre-converted MLX model. Thai repos ship PyTorch .pt — convert them first.
+[voices.bussaba]
+backend   = "f5_mlx"
+model     = "~/.bwoc/speaker/models/f5-thai"   # converted by convert_thai.py
+ref_audio = "~/.bwoc/speaker/refs/bussaba.wav" # mono 24kHz, ~5–10s
+ref_text  = "สวัสดีค่ะ บุษบาเองนะคะ"
+speed     = 1.0
+seed      = 123
+steps     = 32
+# duration is auto-estimated from text (fine-tunes have no duration predictor);
+# set `duration = 8.0` to force a fixed length.
+
+# Highest quality / the locked "P1" voice, rendered on the bemind A6000 via SSH.
+# `remote_cmd` must write a wav to {out} on the server; we scp it back.
+[voices.p1]
+backend     = "f5_remote"
+remote_host = "bmt@192.168.1.113"
+ref_audio   = "~/ai/projects/bwoc-intro/ref/ref.wav"
+ref_text    = "ใส่ทรานสคริปต์ของ ref.wav ตรงนี้"
+speed       = 0.86
+seed        = 123
+remote_out  = "/tmp/bwoc-speaker-out.wav"
+remote_cmd  = "cd ~/ai-stack && conda run -n f5tts-thai python f5_tts/infer.py --ref '{ref_audio}' --ref-text {ref_text} --gen {text} --speed {speed} --seed {seed} --out '{out}'"

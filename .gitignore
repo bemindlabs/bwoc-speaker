@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+# local voice config may hold private refs/paths
+/voices.toml
+
+# local agent/chat session state
+/.bwoc/

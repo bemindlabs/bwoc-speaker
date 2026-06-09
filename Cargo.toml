@@ -1,0 +1,20 @@
+[package]
+name = "bwoc-speaker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Voice for BWOC agents — a daemon that turns the bwoc-harness --chat (chat_proto) stream into spoken audio, with a pluggable TTS backend (on-device F5-TTS-MLX / remote F5-TTS-THAI / macOS say) and per-agent voices."
+license = "MIT"
+
+[[bin]]
+name = "bwoc-speaker"
+path = "src/main.rs"
+
+[dependencies]
+# Single source of truth for the chat protocol the harness already speaks.
+bwoc-core = { path = "../bwoc-framework/crates/bwoc-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
