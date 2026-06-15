@@ -15,6 +15,7 @@ import argparse
 from pathlib import Path
 
 import f5_tts_mlx.cfm as cfm
+import f5_tts_mlx.generate as gen_mod
 from f5_tts_mlx.generate import generate
 
 _orig_fetch = cfm.fetch_from_hub
@@ -28,6 +29,30 @@ def _smart_fetch(repo, quantization_bits=None):
 
 
 cfm.fetch_from_hub = _smart_fetch
+
+
+# --- Thai text fix -------------------------------------------------------
+# F5-TTS-MLX runs every input through `convert_char_to_pinyin`, which treats any
+# 3-byte-UTF-8 segment as Chinese and romanizes it with `lazy_pinyin`. Thai
+# characters are also 3 bytes, so Thai text gets mangled into Chinese pinyin →
+# the model synthesizes garbage. F5-TTS-THAI is char-level (its vocab.txt holds
+# Thai glyphs), so for any text containing Thai we bypass pinyin and pass the
+# raw character list; non-Thai text keeps the original (pinyin) path.
+_orig_pinyin = gen_mod.convert_char_to_pinyin
+
+
+def _has_thai(s):
+    return any("฀" <= c <= "๿" for c in s)
+
+
+def _thai_safe_pinyin(text_list, polyphone=True):
+    out = []
+    for t in text_list:
+        out.append(list(t) if _has_thai(t) else _orig_pinyin([t], polyphone)[0])
+    return out
+
+
+gen_mod.convert_char_to_pinyin = _thai_safe_pinyin
 
 
 def main() -> int:
