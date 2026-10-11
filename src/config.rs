@@ -11,6 +11,7 @@
 //!   2. `$BWOC_SPEAKER_CONFIG`
 //!   3. `~/.bwoc/speaker/voices.toml`
 //!   4. `./voices.toml`
+//!
 //! If none exist we fall back to a single built-in voice: macOS `say` / Kanya
 //! (th_TH), which needs nothing installed.
 

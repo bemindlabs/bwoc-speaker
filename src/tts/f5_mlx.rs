@@ -90,7 +90,8 @@ impl TtsBackend for F5Mlx {
         if let Some(q) = voice.quantize {
             cmd.arg("--q").arg(q.to_string());
         }
-        cmd.arg("--steps").arg(voice.steps.unwrap_or(32).to_string());
+        cmd.arg("--steps")
+            .arg(voice.steps.unwrap_or(32).to_string());
         match voice.duration {
             Some(d) => {
                 cmd.arg("--duration").arg(d.to_string());
