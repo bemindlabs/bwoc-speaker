@@ -15,6 +15,7 @@ mod listen;
 mod player;
 mod stream;
 mod tts;
+mod wispr;
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
@@ -70,7 +71,8 @@ enum Cmd {
         #[arg(long)]
         socket: Option<PathBuf>,
     },
-    /// Push-to-talk: record from the mic, transcribe (MLX Whisper), print the
+    /// Push-to-talk: record from the mic, transcribe (MLX Whisper by default,
+    /// or Wispr Flow via `BWOC_SPEAKER_STT_PROVIDER=wispr`), print the
     /// text — optionally hand it straight to an agent with `--send`.
     Listen {
         /// Force a language for STT (e.g. `th`); omit to auto-detect.
