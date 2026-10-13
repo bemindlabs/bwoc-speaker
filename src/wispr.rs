@@ -91,6 +91,8 @@ pub fn transcribe(audio: &Path, language: Option<&str>) -> Result<String> {
         .status()
         .context("launching ffmpeg to resample for Wispr")?;
     if !status.success() {
+        // `-y` may have left a partial file holding the user's audio.
+        let _ = std::fs::remove_file(&resampled);
         bail!("ffmpeg resample failed ({status})");
     }
     let wav = std::fs::read(&resampled);
