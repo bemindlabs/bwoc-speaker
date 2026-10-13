@@ -3,9 +3,9 @@
 //! Three modes, one pluggable TTS pipeline:
 //!   - `say`    one-shot: synth + play a line in an agent's voice (great for tests)
 //!   - `pipe`   read a `bwoc-harness --chat` event stream on stdin, speak each
-//!              assistant turn (compose with the harness or `bwoc-chat`)
+//!     assistant turn (compose with the harness or `bwoc-chat`)
 //!   - `daemon` listen on a Unix socket; any process can send `{agent,text}`
-//!              JSON lines to be spoken — one background voice for the fleet
+//!     JSON lines to be spoken — one background voice for the fleet
 //!
 //! The backend (on-device F5-TTS-MLX / remote F5-TTS-THAI / macOS `say`) and the
 //! voice are resolved per agent from `voices.toml`. See `config.rs`.
@@ -15,6 +15,7 @@ mod listen;
 mod player;
 mod stream;
 mod tts;
+mod wispr;
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
@@ -22,8 +23,8 @@ use config::{Backend, SpeakerConfig};
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::mpsc;
 use std::sync::Arc;
+use std::sync::mpsc;
 
 #[derive(Parser)]
 #[command(name = "bwoc-speaker", version, about = "Voice for BWOC agents.")]
@@ -70,7 +71,8 @@ enum Cmd {
         #[arg(long)]
         socket: Option<PathBuf>,
     },
-    /// Push-to-talk: record from the mic, transcribe (MLX Whisper), print the
+    /// Push-to-talk: record from the mic, transcribe (MLX Whisper by default,
+    /// or Wispr Flow via `BWOC_SPEAKER_STT_PROVIDER=wispr`), print the
     /// text — optionally hand it straight to an agent with `--send`.
     Listen {
         /// Force a language for STT (e.g. `th`); omit to auto-detect.
@@ -96,13 +98,14 @@ impl Speaker {
         if let Some(b) = self.backend_override {
             voice.backend = b;
         }
-        let result = tts::synth(text, &voice, &self.out_dir, self.allow_fallback)
-            .and_then(|(path, used)| {
+        let result = tts::synth(text, &voice, &self.out_dir, self.allow_fallback).and_then(
+            |(path, used)| {
                 eprintln!("[bwoc-speaker] {agent} · {used} · {}", preview(text));
                 let r = player::play(&path);
                 let _ = std::fs::remove_file(&path);
                 r
-            });
+            },
+        );
         if let Err(e) = result {
             eprintln!("[bwoc-speaker] failed to speak for {agent}: {e:#}");
         }
@@ -173,13 +176,17 @@ fn main() -> Result<()> {
             queue.finish();
         }
         Cmd::Daemon { socket } => run_daemon(speaker, socket)?,
-        Cmd::Listen { language, send } => run_listen(&speaker, language.as_deref(), send.as_deref())?,
+        Cmd::Listen { language, send } => {
+            run_listen(&speaker, language.as_deref(), send.as_deref())?
+        }
     }
     Ok(())
 }
 
 fn run_listen(speaker: &Speaker, language: Option<&str>, send: Option<&str>) -> Result<()> {
-    let wav = speaker.out_dir.join(format!("{}.wav", tts::unique_stem("listen")));
+    let wav = speaker
+        .out_dir
+        .join(format!("{}.wav", tts::unique_stem("listen")));
     listen::record_ptt(&wav)?;
     eprintln!("[bwoc-speaker] กำลังถอดเสียง…");
     let text = listen::transcribe(&wav, language)?;

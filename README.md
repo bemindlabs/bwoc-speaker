@@ -74,6 +74,29 @@ permission** (System Settings → Privacy → Microphone). `pysrc/stt.py` transc
 with MLX Whisper (Thai works well) and prints only the text. A convenience
 `~/.bwoc/speaker/env.sh` exports all of the above — `source` it once.
 
+### Voice input via Wispr Flow (opt-in, cloud)
+
+Wispr Flow publishes an official Voice Interface API ([docs](https://api-docs.wisprflow.ai/);
+REST `POST /api`, WebSocket `/ws`). `bwoc-speaker` uses the REST endpoint as an
+alternative STT provider. The default stays on-device MLX Whisper.
+
+```bash
+export BWOC_SPEAKER_STT_PROVIDER=wispr
+export BWOC_SPEAKER_WISPR_API_KEY=...   # from the Wispr developer platform; env only
+# optional: BWOC_SPEAKER_WISPR_URL (override endpoint)
+bwoc-speaker listen --language th
+```
+
+Needs `ffmpeg` (recording + resample to 16 kHz PCM16) and `curl`. The API key is
+passed to `curl` over stdin, never on the command line, on disk, or in logs.
+
+**What leaves the machine:** with `wispr` selected, each recording (base64 wav) and
+the optional language hint are uploaded to Wispr's servers
+(`platform-api.wisprflow.ai`) and are subject to Wispr's terms and billing
+(usage-based; see their [Usage & Billing](https://api-docs.wisprflow.ai/usage_billing)).
+With the default `whisper` provider nothing is uploaded. Limit: 25 MB / 6 minutes
+per request. Unset the variable (or set it to `whisper`) to go back on-device.
+
 ## 🚀 Install
 
 ```bash

@@ -59,7 +59,10 @@ pub fn synth(
             voice.backend.as_str()
         );
         let fb = mac_say::MacSay;
-        (fb.synth(text, &VoiceProfile::default(), out_dir)?, fb.name())
+        (
+            fb.synth(text, &VoiceProfile::default(), out_dir)?,
+            fb.name(),
+        )
     };
     let path = apply_pitch(path, voice.pitch, out_dir);
     Ok((path, name))
@@ -76,8 +79,14 @@ fn apply_pitch(src: PathBuf, ratio: Option<f32>, out_dir: &Path) -> PathBuf {
     // Probe the sample rate (asetrate needs it); default 24k if probe fails.
     let sr = std::process::Command::new("ffprobe")
         .args([
-            "-v", "error", "-select_streams", "a:0", "-show_entries",
-            "stream=sample_rate", "-of", "csv=p=0",
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=sample_rate",
+            "-of",
+            "csv=p=0",
         ])
         .arg(&src)
         .output()
