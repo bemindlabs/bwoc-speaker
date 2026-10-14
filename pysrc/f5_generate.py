@@ -45,11 +45,15 @@ def _has_thai(s):
     return any("฀" <= c <= "๿" for c in s)
 
 
-def _thai_safe_pinyin(text_list, polyphone=True):
-    out = []
-    for t in text_list:
-        out.append(list(t) if _has_thai(t) else _orig_pinyin([t], polyphone)[0])
-    return out
+def _thai_safe_pinyin(text_list, *args, **kwargs):
+    # One upstream call for all non-Thai entries (not one per entry), then
+    # stitch them back in order. Extra args pass through unchanged so an
+    # upstream signature change does not break the patch.
+    texts = list(text_list)
+    is_thai = [_has_thai(t) for t in texts]
+    others = [t for t, thai in zip(texts, is_thai) if not thai]
+    converted = iter(_orig_pinyin(others, *args, **kwargs) if others else [])
+    return [list(t) if thai else next(converted) for t, thai in zip(texts, is_thai)]
 
 
 gen_mod.convert_char_to_pinyin = _thai_safe_pinyin
