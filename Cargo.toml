@@ -1,6 +1,6 @@
 [package]
 name = "bwoc-speaker"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.85"
 description = "Voice for BWOC agents — a daemon that turns the bwoc-harness --chat (chat_proto) stream into spoken audio, with a pluggable TTS backend (on-device F5-TTS-MLX / remote F5-TTS-THAI / macOS say) and per-agent voices."
